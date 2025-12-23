@@ -20,10 +20,10 @@ NOTION_VERSION = "2022-06-28"
 NOTION_API = "https://api.notion.com/v1"
 
 # ✅ Notion 속성명(여기 DB에 맞게 수정)
-PROP_TITLE = "이름"           # Title property name (예: "도서명" / "Name" / "이름")
+PROP_TITLE = "책 제목"           # Title property name (예: "도서명" / "Name" / "이름")
 PROP_BORROWER = "대여자"      # People property name
-PROP_OVERDUE = "연체여부"     # Formula(checkbox result)
-PROP_NOTIFIED = "알림발송완료" # Checkbox
+PROP_OVERDUE = "연체 (30일초과)"     # Formula(checkbox result)
+PROP_NOTIFIED = "반납알림완료" # Checkbox
 
 
 def notion_headers() -> Dict[str, str]:
@@ -66,7 +66,7 @@ def query_overdue_pages() -> List[Dict[str, Any]]:
         "filter": {
             "and": [
                 {"property": PROP_OVERDUE, "checkbox": {"equals": True}},
-                {"property": PROP_NOTIFIED, "checkbox": {"equals": False}},
+                {"property": , "checkbox": {"equals": False}},
             ]
         },
         "page_size": 100,
@@ -95,7 +95,7 @@ def mark_notified(page_id: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
         "properties": {
-            PROP_NOTIFIED: {"checkbox": True}
+            : {"checkbox": True}
         }
     }
     resp = requests.patch(url, headers=notion_headers(), data=json.dumps(payload), timeout=30)
@@ -146,11 +146,11 @@ def main() -> None:
         if page_id:
             mark_notified(page_id)
 
-    message = "📚 반납 요청 대상(연체 4주 이상)\n" + "\n".join(lines)
+    message = "📚 반납 요청 대상(대여 30일 초과)\n" + "\n".join(lines)
 
     # Slack + Email(둘 다 설정돼 있으면 둘 다 감)
     send_slack(message)
-    send_email("반납 요청 대상(연체 4주 이상)", message)
+    send_email("📚 반납 요청 대상(대여 30일 초과)", message)
 
     print(f"Notified {len(pages)} page(s).")
 
