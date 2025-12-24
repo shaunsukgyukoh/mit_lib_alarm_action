@@ -60,7 +60,7 @@ def safe_get_borrowers(page: Dict[str, Any]) -> str:
 
 
 def query_overdue_pages() -> List[Dict[str, Any]]:
-    """Filter: 연체여부 == true AND 알림발송완료 == false"""
+    """Filter: 연체 (30일초과) == true AND 반납알림완료 == false"""
     url = f"{NOTION_API}/databases/{DATABASE_ID}/query"
     payload = {
         "filter": {
