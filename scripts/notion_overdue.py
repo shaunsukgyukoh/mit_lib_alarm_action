@@ -102,7 +102,9 @@ def mark_notified(page_id: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
         "properties": {
-            : {"checkbox": True}
+            PROP_NOTIFIED: {
+                "checkbox": True
+            }
         }
     }
     resp = requests.patch(url, headers=notion_headers(), data=json.dumps(payload), timeout=30)
