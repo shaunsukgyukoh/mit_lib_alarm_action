@@ -65,12 +65,19 @@ def query_overdue_pages() -> List[Dict[str, Any]]:
     payload = {
         "filter": {
             "and": [
-                {"property": PROP_OVERDUE, "checkbox": {"equals": True}},
-                {"property": , "checkbox": {"equals": False}},
+                {
+                    "property": PROP_OVERDUE,
+                    "checkbox": {"equals": True}
+                },
+                {
+                    "property": PROP_NOTIFIED,
+                    "checkbox": {"equals": False}
+                }
             ]
         },
-        "page_size": 100,
+        "page_size": 100
     }
+
 
     results: List[Dict[str, Any]] = []
     has_more = True
