@@ -101,11 +101,9 @@ def query_overdue_pages() -> List[Dict[str, Any]]:
 def mark_notified(page_id: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
-        "properties": {
-            PROP_NOTIFIED: {
-                "checkbox": True
-            }
-        }
+        "property": PROP_NOTIFIED,
+        "checkbox": True
+        
     }
     resp = requests.patch(url, headers=notion_headers(), data=json.dumps(payload), timeout=30)
     resp.raise_for_status()
