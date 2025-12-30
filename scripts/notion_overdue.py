@@ -243,12 +243,13 @@ def main() -> None:
     
         # 대여자 각각에게 메일
         for borrower_name in borrower_names:
-            if not b.get("id"):
+            if not borrower_name.get("id"):
                 continue
-            email = find_email_by_person_id(b["id"])
+            email = find_email_by_person_id(borrower_name["id"])
             # email = find_email_by_person_id(borrower_name)
             if not email:
-                print(f"[WARN] No email found for borrower: {borrower_name}")
+                print(f"[WARN] No email found for borrower: {b.get('name')}")
+                # print(f"[WARN] No email found for borrower: {borrower_name}")
                 continue
             send_email(email, f"📚 반납 요청: {title}", book_msg)
     
