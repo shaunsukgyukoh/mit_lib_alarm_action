@@ -25,7 +25,7 @@ PROP_TITLE = "책 제목"           # Title property name (예: "도서명" / "N
 PROP_BORROWER = "대여자"      # People property name
 PROP_OVERDUE = "연체(30일초과)"     # Formula(checkbox result)
 PROP_NOTIFIED = "반납알림완료" # Checkbox
-CONTACT_PROP_NAME = "노션이름"
+CONTACT_PROP_NAME = "노션이름"   # 사람(Person) 속성
 CONTACT_PROP_EMAIL = "E-mail"
 
 
@@ -121,46 +121,84 @@ def send_slack(message: str) -> None:
     resp = requests.post(SLACK_WEBHOOK_URL, json={"text": message}, timeout=30)
     resp.raise_for_status()
 
-
-def find_email_by_notion_name(notion_name: str) -> Optional[str]:
-    if not NOTION_CONTACTS_DB_ID:
-        raise RuntimeError("NOTION_CONTACTS_DB_ID is missing.")
-
-    url = f"{NOTION_API}/databases/{NOTION_CONTACTS_DB_ID}/query"
+def find_email_by_person_id(person_id: str) -> Optional[str]:
+    url = f"{NOTION_API}/databases/{CONTACTS_DB_ID}/query"
     payload = {
         "filter": {
-            "property": CONTACT_PROP_NAME,
-            "rich_text": {"equals": notion_name}
+            "property": CONTACT_PROP_PERSON,
+            "people": {"contains": person_id}
         },
         "page_size": 1
     }
 
     resp = requests.post(url, headers=notion_headers(), json=payload, timeout=30)
+    if resp.status_code >= 400:
+        print("Contacts DB query error:", resp.status_code, resp.text)  # 디버그
     resp.raise_for_status()
-    data = resp.json()
-    results = data.get("results", [])
+
+    results = resp.json().get("results", [])
     if not results:
         return None
 
     props = results[0].get("properties", {})
     email_prop = props.get(CONTACT_PROP_EMAIL, {})
 
-    # Email property
     if email_prop.get("type") == "email":
         return email_prop.get("email")
 
-    # 혹시 Text로 만들었으면 fallback
     if email_prop.get("type") == "rich_text":
         rt = email_prop.get("rich_text", [])
         return "".join([x.get("plain_text", "") for x in rt]).strip() or None
 
     return None
 
+
+# def find_email_by_notion_name(notion_name: str) -> Optional[str]:
+#     if not NOTION_CONTACTS_DB_ID:
+#         raise RuntimeError("NOTION_CONTACTS_DB_ID is missing.")
+
+#     url = f"{NOTION_API}/databases/{NOTION_CONTACTS_DB_ID}/query"
+#     payload = {
+#         "filter": {
+#             "property": CONTACT_PROP_NAME,
+#             "rich_text": {"equals": notion_name}
+#         },
+#         "page_size": 1
+#     }
+
+#     resp = requests.post(url, headers=notion_headers(), json=payload, timeout=30)
+#     resp.raise_for_status()
+#     data = resp.json()
+#     results = data.get("results", [])
+#     if not results:
+#         return None
+
+#     props = results[0].get("properties", {})
+#     email_prop = props.get(CONTACT_PROP_EMAIL, {})
+
+#     # Email property
+#     if email_prop.get("type") == "email":
+#         return email_prop.get("email")
+
+#     # 혹시 Text로 만들었으면 fallback
+#     if email_prop.get("type") == "rich_text":
+#         rt = email_prop.get("rich_text", [])
+#         return "".join([x.get("plain_text", "") for x in rt]).strip() or None
+
+#     return None
+
 def get_borrower_names(page: Dict[str, Any]) -> List[str]:
     props = page.get("properties", {})
     p = props.get(PROP_BORROWER, {})
     people = p.get("people", []) if p.get("type") == "people" else []
     return [x.get("name", "").strip() for x in people if x.get("name")]
+
+def get_borrower_people(page: Dict[str, Any]) -> List[Dict[str, str]]:
+    props = page.get("properties", {})
+    p = props.get(PROP_BORROWER, {})
+    if p.get("type") != "people":
+        return []
+    return [{"id": x.get("id"), "name": x.get("name")} for x in p.get("people", [])]
     
 # def send_email(subject: str, body: str) -> None:
 #     if not (SMTP_HOST and SMTP_PORT and SMTP_USER and SMTP_PASS and EMAIL_TO):
@@ -205,7 +243,10 @@ def main() -> None:
     
         # 대여자 각각에게 메일
         for borrower_name in borrower_names:
-            email = find_email_by_notion_name(borrower_name)
+            if not b.get("id"):
+                continue
+            email = find_email_by_person_id(b["id"])
+            # email = find_email_by_person_id(borrower_name)
             if not email:
                 print(f"[WARN] No email found for borrower: {borrower_name}")
                 continue
