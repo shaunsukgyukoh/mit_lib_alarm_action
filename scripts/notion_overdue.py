@@ -231,13 +231,18 @@ def main() -> None:
         return
         
     admin_lines = []
-    lines = []
+    slack_lines = []
+    
     for p in pages:
         title = safe_get_title(p)
         page_id = p.get("id")
         page_url = p.get("url", "")
         borrowers = get_borrower_people(p)  # [{"id": "...", "name": "..."}, ...]
-    
+
+        borrower_names_str = ", ".join(
+            [b.get("name", "") for b in borrowers if b.get("name")]
+        ) or "(대여자 없음)"
+        
         # 책 1권의 알림 메시지(개별 발송용)
         book_msg = f"반납 요청 도서: {title}\n링크: {page_url}\n"
     
@@ -254,17 +259,26 @@ def main() -> None:
                 # print(f"[WARN] No email found for borrower: {borrower_name}")
                 continue
             send_email(email, f"📚 반납 요청: {title}", book_msg)
-    
-        # (선택) 관리자에게도 1통 보내기
-        if EMAIL_TO:
-            admin_msg = book_msg + f"대여자: {', '.join(borrower_names) or '(없음)'}\n"
-            send_email(EMAIL_TO, f"📚 반납 요청(관리자): {title}", admin_msg)
-    
+
+        # --- 관리자/슬랙용 전체 목록에 누적 ---
+        admin_lines.append(f"- {title} / 대여자: {borrower_names_str} / {page_url}")
+        slack_lines.append(f"- {title} / 대여자: {borrower_names_str} / {page_url}")
+        
         # 발송 완료 표시
         if page_id:
             mark_notified(page_id)
 
-    # print(f"Notified {len(pages)} page(s).")
+    # --- 관리자에게 전체 목록 1통 ---
+    if EMAIL_TO and admin_lines:
+        admin_msg = "📚 반납 요청 대상(대여 30일 초과) 전체 목록\n" + "\n".join(admin_lines)
+        send_email(EMAIL_TO, "📚 반납 요청 대상(전체 목록)", admin_msg)
+
+    # --- Slack도 전체 목록 1번만(원하면 유지) ---
+    if slack_lines:
+        slack_msg = "📚 반납 요청 대상(대여 30일 초과) 전체 목록\n" + "\n".join(slack_lines)
+        send_slack(slack_msg)
+
+    print(f"Notified {len(pages)} page(s).")
 
 
 if __name__ == "__main__":
