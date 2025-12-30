@@ -15,6 +15,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "0") or "0")
 SMTP_USER = os.getenv("SMTP_USER", "").strip()
 SMTP_PASS = os.getenv("SMTP_PASS", "").strip()
 EMAIL_TO = os.getenv("EMAIL_TO", "").strip()
+CONTACTS_DB_ID = os.getenv("NOTION_CONTACTS_DB_ID", "").strip()
 
 NOTION_VERSION = "2022-06-28"
 NOTION_API = "https://api.notion.com/v1"
@@ -24,6 +25,8 @@ PROP_TITLE = "책 제목"           # Title property name (예: "도서명" / "N
 PROP_BORROWER = "대여자"      # People property name
 PROP_OVERDUE = "연체(30일초과)"     # Formula(checkbox result)
 PROP_NOTIFIED = "반납알림완료" # Checkbox
+CONTACT_PROP_NAME = "노션이름"
+CONTACT_PROP_EMAIL = "E-mail"
 
 
 def notion_headers() -> Dict[str, str]:
@@ -119,10 +122,55 @@ def send_slack(message: str) -> None:
     resp.raise_for_status()
 
 
-def send_email(subject: str, body: str) -> None:
-    if not (SMTP_HOST and SMTP_PORT and SMTP_USER and SMTP_PASS and EMAIL_TO):
-        return
+def find_email_by_notion_name(notion_name: str) -> Optional[str]:
+    if not CONTACTS_DB_ID:
+        raise RuntimeError("NOTION_CONTACTS_DB_ID is missing.")
 
+    url = f"{NOTION_API}/databases/{CONTACTS_DB_ID}/query"
+    payload = {
+        "filter": {
+            "property": CONTACT_PROP_NAME,
+            "rich_text": {"equals": notion_name}
+        },
+        "page_size": 1
+    }
+
+    resp = requests.post(url, headers=notion_headers(), json=payload, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    results = data.get("results", [])
+    if not results:
+        return None
+
+    props = results[0].get("properties", {})
+    email_prop = props.get(CONTACT_PROP_EMAIL, {})
+
+    # Email property
+    if email_prop.get("type") == "email":
+        return email_prop.get("email")
+
+    # 혹시 Text로 만들었으면 fallback
+    if email_prop.get("type") == "rich_text":
+        rt = email_prop.get("rich_text", [])
+        return "".join([x.get("plain_text", "") for x in rt]).strip() or None
+
+    return None
+
+def get_borrower_names(page: Dict[str, Any]) -> List[str]:
+    props = page.get("properties", {})
+    p = props.get(PROP_BORROWER, {})
+    people = p.get("people", []) if p.get("type") == "people" else []
+    return [x.get("name", "").strip() for x in people if x.get("name")]
+    
+# def send_email(subject: str, body: str) -> None:
+#     if not (SMTP_HOST and SMTP_PORT and SMTP_USER and SMTP_PASS and EMAIL_TO):
+#         return
+def send_email(to_email: str, subject: str, body: str) -> None:
+    if not (SMTP_HOST and SMTP_PORT and SMTP_USER and SMTP_PASS):
+        return
+    if not to_email:
+        return
+        
     msg = MIMEText(body, _charset="utf-8")
     msg["Subject"] = subject
     msg["From"] = SMTP_USER
@@ -139,29 +187,40 @@ def main() -> None:
         raise RuntimeError("NOTION_DATABASE_ID is missing.")
 
     pages = query_overdue_pages()
-
+    
     if not pages:
         print("No overdue pages found.")
         return
-
+        
+    admin_lines = []
     lines = []
     for p in pages:
         title = safe_get_title(p)
-        borrowers = safe_get_borrowers(p)
         page_id = p.get("id")
-        url = p.get("url", "")
-        lines.append(f"- {title} / 대여자: {borrowers} / {url}")
-
+        page_url = p.get("url", "")
+        borrower_names = get_borrower_names(p)
+    
+        # 책 1권의 알림 메시지(개별 발송용)
+        book_msg = f"반납 요청 도서: {title}\n링크: {page_url}\n"
+    
+        # 대여자 각각에게 메일
+        for borrower_name in borrower_names:
+            email = find_email_by_notion_name(borrower_name)
+            if not email:
+                print(f"[WARN] No email found for borrower: {borrower_name}")
+                continue
+            send_email(email, f"📚 반납 요청: {title}", book_msg)
+    
+        # (선택) 관리자에게도 1통 보내기
+        if EMAIL_TO:
+            admin_msg = book_msg + f"대여자: {', '.join(borrower_names) or '(없음)'}\n"
+            send_email(EMAIL_TO, f"📚 반납 요청(관리자): {title}", admin_msg)
+    
+        # 발송 완료 표시
         if page_id:
             mark_notified(page_id)
 
-    message = "📚 반납 요청 대상(대여 30일 초과)\n" + "\n".join(lines)
-
-    # Slack + Email(둘 다 설정돼 있으면 둘 다 감)
-    send_slack(message)
-    send_email("📚 반납 요청 대상(대여 30일 초과)", message)
-
-    print(f"Notified {len(pages)} page(s).")
+    # print(f"Notified {len(pages)} page(s).")
 
 
 if __name__ == "__main__":
