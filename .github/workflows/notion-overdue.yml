@@ -26,12 +26,14 @@ jobs:
           env:
             NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
             NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+            NOTION_CONTACTS_DB_ID: ${{ secrets.NOTION_CONTACTS_DB_ID }}
             SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
             SMTP_HOST: ${{ secrets.SMTP_HOST }}
             SMTP_PORT: ${{ secrets.SMTP_PORT }}
             SMTP_USER: ${{ secrets.SMTP_USER }}
             SMTP_PASS: ${{ secrets.SMTP_PASS }}
             EMAIL_TO: ${{ secrets.EMAIL_TO }}
+            
           run: |
             python scripts/notion_overdue.py
 
