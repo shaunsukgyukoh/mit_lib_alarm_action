@@ -123,10 +123,10 @@ def send_slack(message: str) -> None:
 
 
 def find_email_by_notion_name(notion_name: str) -> Optional[str]:
-    if not CONTACTS_DB_ID:
+    if not NOTION_CONTACTS_DB_ID:
         raise RuntimeError("NOTION_CONTACTS_DB_ID is missing.")
 
-    url = f"{NOTION_API}/databases/{CONTACTS_DB_ID}/query"
+    url = f"{NOTION_API}/databases/{NOTION_CONTACTS_DB_ID}/query"
     payload = {
         "filter": {
             "property": CONTACT_PROP_NAME,
