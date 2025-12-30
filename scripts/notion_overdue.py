@@ -122,7 +122,7 @@ def send_slack(message: str) -> None:
     resp.raise_for_status()
 
 def find_email_by_person_id(person_id: str) -> Optional[str]:
-    url = f"{NOTION_API}/databases/{CONTACTS_DB_ID}/query"
+    url = f"{NOTION_API}/databases/{NOTION_CONTACTS_DB_ID}/query"
     payload = {
         "filter": {
             "property": CONTACT_PROP_PERSON,
