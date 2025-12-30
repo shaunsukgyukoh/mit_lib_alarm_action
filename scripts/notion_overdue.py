@@ -22,7 +22,7 @@ NOTION_API = "https://api.notion.com/v1"
 # ✅ Notion 속성명(여기 DB에 맞게 수정)
 PROP_TITLE = "책 제목"           # Title property name (예: "도서명" / "Name" / "이름")
 PROP_BORROWER = "대여자"      # People property name
-PROP_OVERDUE = "연체 (30일초과)"     # Formula(checkbox result)
+PROP_OVERDUE = "연체(30일초과)"     # Formula(checkbox result)
 PROP_NOTIFIED = "반납알림완료" # Checkbox
 
 
@@ -101,11 +101,13 @@ def query_overdue_pages() -> List[Dict[str, Any]]:
 def mark_notified(page_id: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
-        "property": PROP_NOTIFIED,
-        "checkbox": True
-        
+        "properties": {
+            PROP_NOTIFIED: {"checkbox": True}
+        }
     }
-    resp = requests.patch(url, headers=notion_headers(), data=json.dumps(payload), timeout=30)
+    resp = requests.patch(url, headers=notion_headers(), json=payload, timeout=30)
+    if resp.status_code >= 400:
+        print("Notion error:", resp.status_code, resp.text)  # ★ 원인 메시지 확인
     resp.raise_for_status()
     time.sleep(0.2)
 
