@@ -25,7 +25,7 @@ PROP_TITLE = "책 제목"           # Title property name (예: "도서명" / "N
 PROP_BORROWER = "대여자"      # People property name
 PROP_OVERDUE = "연체(30일초과)"     # Formula(checkbox result)
 PROP_NOTIFIED = "반납알림완료" # Checkbox
-CONTACT_PROP_NAME = "노션이름"   # 사람(Person) 속성
+CONTACT_PROP_PERSON = "노션이름"   # 사람(Person) 속성
 CONTACT_PROP_EMAIL = "E-mail"
 
 
