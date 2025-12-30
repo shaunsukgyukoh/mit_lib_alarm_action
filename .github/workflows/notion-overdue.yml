@@ -35,15 +35,15 @@ jobs:
           run: |
             python scripts/notion_overdue.py
 
-        - name: Notion GitHub Issues Automation
-          uses: Sajantoor/Notion-GitHub-Issues-Automation@1.0.0
-          with:
-              # Your current repository.
-              repo: ${{ github.repository }} 
-              # Your Notion API Key
-              NOTION_API_KEY: ${{ secrets.NOTION_TOKEN }}
-              # Your Notion database ID
-              NOTION_DATABASE: ${{ secrets.NOTION_DATABASE_ID }}
-              # The ID of the page that contains your database
-              NOTION_PAGE_ID:  ${{ secrets.NOTION_PAGE_ID }}
+#        - name: Notion GitHub Issues Automation
+#          uses: Sajantoor/Notion-GitHub-Issues-Automation@1.0.0
+#          with:
+#              # Your current repository.
+#              repo: ${{ github.repository }} 
+#              # Your Notion API Key
+#              NOTION_API_KEY: ${{ secrets.NOTION_TOKEN }}
+#              # Your Notion database ID
+#              NOTION_DATABASE: ${{ secrets.NOTION_DATABASE_ID }}
+#              # The ID of the page that contains your database
+#              NOTION_PAGE_ID:  ${{ secrets.NOTION_PAGE_ID }}
   
