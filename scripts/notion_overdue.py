@@ -236,19 +236,21 @@ def main() -> None:
         title = safe_get_title(p)
         page_id = p.get("id")
         page_url = p.get("url", "")
-        borrower_names = get_borrower_names(p)
+        borrowers = get_borrower_people(p)  # [{"id": "...", "name": "..."}, ...]
     
         # 책 1권의 알림 메시지(개별 발송용)
         book_msg = f"반납 요청 도서: {title}\n링크: {page_url}\n"
     
         # 대여자 각각에게 메일
-        for borrower_name in borrower_names:
-            if not borrower_name.get("id"):
+        for borrower in borrowers:
+            person_id = borrower.get("id")
+            person_name = borrower.get("name", "")
+            if not person_id:
                 continue
-            email = find_email_by_person_id(borrower_name["id"])
+            email = find_email_by_person_id(person_id)
             # email = find_email_by_person_id(borrower_name)
             if not email:
-                print(f"[WARN] No email found for borrower: {b.get('name')}")
+                print(f"[WARN] No email found for borrower: {person_name}")
                 # print(f"[WARN] No email found for borrower: {borrower_name}")
                 continue
             send_email(email, f"📚 반납 요청: {title}", book_msg)
