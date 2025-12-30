@@ -15,7 +15,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "0") or "0")
 SMTP_USER = os.getenv("SMTP_USER", "").strip()
 SMTP_PASS = os.getenv("SMTP_PASS", "").strip()
 EMAIL_TO = os.getenv("EMAIL_TO", "").strip()
-CONTACTS_DB_ID = os.getenv("NOTION_CONTACTS_DB_ID", "").strip()
+NOTION_CONTACTS_DB_ID = os.getenv("NOTION_CONTACTS_DB_ID", "").strip()
 
 NOTION_VERSION = "2022-06-28"
 NOTION_API = "https://api.notion.com/v1"
