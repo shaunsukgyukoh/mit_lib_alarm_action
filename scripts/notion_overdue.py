@@ -120,7 +120,8 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
     후보만 가져오기:
     - 대여자 is_not_empty
     - 대여날짜 is_not_empty
-    - (3주알림완료 == false OR 4주알림완료 == false)
+    - (반납알림상태 is_empty OR 반납알림상태 != 🔴4주알림완료)
+      -> 4주차(🔴)까지 완료된 건은 더 이상 볼 필요 없으니 제외
     """
     url = f"{NOTION_API}/databases/{DATABASE_ID}/query"
     payload = {
@@ -130,8 +131,8 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
                 {"property": PROP_BORROWED, "date": {"is_not_empty": True}},
                 {
                     "or": [
-                        {"property": PROP_NOTIFIED_3W, "checkbox": {"equals": False}},
-                        {"property": PROP_NOTIFIED_4W, "checkbox": {"equals": False}},
+                        {"property": PROP_ALERT, "rich_text": {"is_empty": True}},
+                        {"property": PROP_ALERT, "rich_text": {"does_not_equal": ALERT_4W}},
                     ]
                 }
             ]
