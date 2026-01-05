@@ -31,6 +31,8 @@ PROP_ALERT = "반납알림상태"   # Select or Rich text
 ALERT_3W = "🟡3주알림완료"
 ALERT_4W = "🔴4주알림완료"
 
+ADMIN_EMAIL = "yyeom@medintech.co.kr"
+
 # ✅ 연락망 DB 속성명
 CONTACT_PROP_PERSON = "노션이름"   # People
 CONTACT_PROP_EMAIL = "E-mail"      # Email (또는 Text)
@@ -313,10 +315,10 @@ def main() -> None:
         sent_count += 1
 
     # 관리자에게 전체 목록 1통
-    if EMAIL_TO and admin_lines:
+    if admin_lines:
         admin_subject = "📚 반납 요청 대상 전체 목록 (3주차/4주차)"
         admin_body = "아래 도서가 대여일 기준 3주차/4주차 반납 요청 대상입니다.\n\n" + "\n".join(admin_lines)
-        send_email(EMAIL_TO, admin_subject, admin_body)
+        send_email(ADMIN_EMAIL, admin_subject, admin_body)
 
     # Slack도 전체 목록 1번
     if slack_lines:
