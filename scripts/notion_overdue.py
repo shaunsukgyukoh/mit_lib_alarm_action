@@ -82,7 +82,9 @@ def set_alert_status(page_id: str, status: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
         "properties": {
-            PROP_ALERT: {"select": {"name": status}}
+            PROP_ALERT: {
+                "rich_text": [{"type": "text", "text": {"content": status}}]
+            }
         }
     }
     resp = requests.patch(url, headers=notion_headers(), json=payload, timeout=30)
@@ -145,8 +147,8 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
                 {"property": PROP_BORROWED, "date": {"is_not_empty": True}},
                 {
                     "or": [
-                        {"property": PROP_ALERT, "select": {"is_empty": True}},
-                        {"property": PROP_ALERT, "select": {"does_not_equal": ALERT_4W}},
+                        {"property": PROP_ALERT, "rich_text": {"is_empty": True}},
+                        {"property": PROP_ALERT, "rich_text": {"does_not_equal": ALERT_4W}},
                     ]
                 }
             ]
