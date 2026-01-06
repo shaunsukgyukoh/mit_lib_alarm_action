@@ -65,11 +65,24 @@ def get_alert_status(page: Dict[str, Any]) -> str:
 
     return ""
 
+# def set_alert_status(page_id: str, status: str) -> None:
+#     url = f"{NOTION_API}/pages/{page_id}"
+#     payload = {
+#         "properties": {
+#             PROP_ALERT: {"rich_text": [{"type": "text", "text": {"content": status}}]}
+#         }
+#     }
+#     resp = requests.patch(url, headers=notion_headers(), json=payload, timeout=30)
+#     if resp.status_code >= 400:
+#         print("Notion update error:", resp.status_code, resp.text)
+#     resp.raise_for_status()
+#     time.sleep(0.2)
+
 def set_alert_status(page_id: str, status: str) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
     payload = {
         "properties": {
-            PROP_ALERT: {"rich_text": [{"type": "text", "text": {"content": status}}]}
+            PROP_ALERT: {"select": {"name": status}}
         }
     }
     resp = requests.patch(url, headers=notion_headers(), json=payload, timeout=30)
@@ -77,7 +90,7 @@ def set_alert_status(page_id: str, status: str) -> None:
         print("Notion update error:", resp.status_code, resp.text)
     resp.raise_for_status()
     time.sleep(0.2)
-    
+
 def safe_get_title(page: Dict[str, Any]) -> str:
     props = page.get("properties", {})
     title_prop = props.get(PROP_TITLE, {})
@@ -123,7 +136,6 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
     - 대여자 is_not_empty
     - 대여날짜 is_not_empty
     - (반납알림상태 is_empty OR 반납알림상태 != 🔴4주알림완료)
-      -> 4주차(🔴)까지 완료된 건은 더 이상 볼 필요 없으니 제외
     """
     url = f"{NOTION_API}/databases/{DATABASE_ID}/query"
     payload = {
@@ -133,8 +145,8 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
                 {"property": PROP_BORROWED, "date": {"is_not_empty": True}},
                 {
                     "or": [
-                        {"property": PROP_ALERT, "rich_text": {"is_empty": True}},
-                        {"property": PROP_ALERT, "rich_text": {"does_not_equal": ALERT_4W}},
+                        {"property": PROP_ALERT, "select": {"is_empty": True}},
+                        {"property": PROP_ALERT, "select": {"does_not_equal": ALERT_4W}},
                     ]
                 }
             ]
@@ -161,6 +173,51 @@ def query_candidate_pages() -> List[Dict[str, Any]]:
         time.sleep(0.2)
 
     return results
+
+# def query_candidate_pages() -> List[Dict[str, Any]]:
+#     """
+#     후보만 가져오기:
+#     - 대여자 is_not_empty
+#     - 대여날짜 is_not_empty
+#     - (반납알림상태 is_empty OR 반납알림상태 != 🔴4주알림완료)
+#       -> 4주차(🔴)까지 완료된 건은 더 이상 볼 필요 없으니 제외
+#     """
+#     url = f"{NOTION_API}/databases/{DATABASE_ID}/query"
+#     payload = {
+#         "filter": {
+#             "and": [
+#                 {"property": PROP_BORROWER, "people": {"is_not_empty": True}},
+#                 {"property": PROP_BORROWED, "date": {"is_not_empty": True}},
+#                 {
+#                     "or": [
+#                         {"property": PROP_ALERT, "rich_text": {"is_empty": True}},
+#                         {"property": PROP_ALERT, "rich_text": {"does_not_equal": ALERT_4W}},
+#                     ]
+#                 }
+#             ]
+#         },
+#         "page_size": 100
+#     }
+
+#     results: List[Dict[str, Any]] = []
+#     has_more = True
+#     start_cursor: Optional[str] = None
+
+#     while has_more:
+#         if start_cursor:
+#             payload["start_cursor"] = start_cursor
+#         resp = requests.post(url, headers=notion_headers(), json=payload, timeout=30)
+#         if resp.status_code >= 400:
+#             print("Notion DB query error:", resp.status_code, resp.text)
+#         resp.raise_for_status()
+
+#         data = resp.json()
+#         results.extend(data.get("results", []))
+#         has_more = data.get("has_more", False)
+#         start_cursor = data.get("next_cursor")
+#         time.sleep(0.2)
+
+#     return results
 
 def mark_checkbox(page_id: str, prop_name: str, value: bool = True) -> None:
     url = f"{NOTION_API}/pages/{page_id}"
@@ -306,12 +363,7 @@ def main() -> None:
         slack_lines.append(line)
 
         set_alert_status(page_id, new_status)
-        # # 해당 단계 완료 체크
-        # if stage == "3주차":
-        #     mark_checkbox(page_id, PROP_NOTIFIED_3W, True)
-        # elif stage == "4주차":
-        #     mark_checkbox(page_id, PROP_NOTIFIED_4W, True)
-
+        
         sent_count += 1
 
     # 관리자에게 전체 목록 1통
