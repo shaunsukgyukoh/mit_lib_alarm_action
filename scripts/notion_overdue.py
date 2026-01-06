@@ -325,12 +325,12 @@ def main() -> None:
         current_status = get_alert_status(p)
 
         # 3주차: 21~27일이면, 아직 🟡/🔴가 아니면 🟡로 만들고 발송
-        if is_week3 and current_status not in (ALERT_3W, ALERT_4W):
-            stage = "3주차"
-            new_status = ALERT_3W
+        # if is_week3 and current_status not in (ALERT_3W, ALERT_4W):
+        #     stage = "3주차"
+        #     new_status = ALERT_3W
         
         # 4주차: 28일 이상이면, 아직 🔴가 아니면 🔴로 만들고 발송 (🟡면 업그레이드)
-        elif is_week4 and current_status != ALERT_4W:
+        if is_week4 and current_status != ALERT_4W:
             stage = "4주차"
             new_status = ALERT_4W
         else:
@@ -370,13 +370,13 @@ def main() -> None:
 
     # 관리자에게 전체 목록 1통
     if admin_lines:
-        admin_subject = "📚 반납 요청 대상 전체 목록 (3주차/4주차)"
-        admin_body = "아래 도서가 대여일 기준 3주차/4주차 반납 요청 대상입니다.\n\n" + "\n".join(admin_lines)
+        admin_subject = "📚 반납 요청 대상 전체 목록"
+        admin_body = "아래 도서가 대여일 기준 4주차 반납 요청 대상입니다.\n\n" + "\n".join(admin_lines)
         send_email(ADMIN_EMAIL, admin_subject, admin_body)
 
     # Slack도 전체 목록 1번
     if slack_lines:
-        slack_msg = "📚 반납 요청 대상 전체 목록 (3주차/4주차)\n" + "\n".join(slack_lines)
+        slack_msg = "📚 반납 요청 대상 전체 목록 \n" + "\n".join(slack_lines)
         send_slack(slack_msg)
 
     print(f"Sent reminders for {sent_count} page(s).")
